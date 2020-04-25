@@ -16,7 +16,7 @@
 
 # To fix:
 #   1. scraper sometimes grabs wrong elements
-#   2. figure out scroll method
+#   2. Add to results queue (remove duplicates too)
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -25,6 +25,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from collections import deque
+import time
 
 class PinterestScraper:
     # desc: initializes webdriver object and logs into pinterest
@@ -48,20 +49,39 @@ class PinterestScraper:
 
         emailInput.send_keys(email)
         passwordInput.send_keys(password)
+        time.sleep(3)
         passwordInput.send_keys(Keys.RETURN)
 
     # desc: Goes to linkSetURL and gets the set of links we will parse
     # pre:  linkSetURL must be a valid URL to a pinterest pin page
     def GetLinkSet(self, linkSetURL):
+        MAX_TRIES = 120
+        tries = 0
         linkQueue = deque()
+        linkSet = []
         self._browser.get(linkSetURL)
 
-        linkSet = self._wait.until(EC.presence_of_all_elements_located(
-					(By.CSS_SELECTOR, "a[href*='/pin/'] img")))
-        linkQueue = self.__CleanLinkSet(linkSet)
+        body = self._browser.find_element_by_tag_name("body")
 
-        for i in range(len(linkQueue)):
-            print(linkQueue[i])
+        while tries < MAX_TRIES:
+            time.sleep(2)
+            previousSet = linkSet
+            linkSet = self._wait.until(EC.presence_of_all_elements_located(
+					(By.CSS_SELECTOR, "a[href*='/pin/'] img")))
+            linkQueue = self.__CleanLinkSet(linkSet)
+
+            if (previousSet != linkSet):
+                body.send_keys(Keys.PAGE_DOWN)
+                body.send_keys(Keys.PAGE_DOWN)
+                tries = 0
+            else:
+                tries += 1
+
+            for i in range(len(linkQueue)):
+                print(linkQueue[i])
+            print("************")
+
+            input()
 
     # desc: Removes non-infographic images
     def __CleanLinkSet(self, linkSet):
@@ -71,8 +91,8 @@ class PinterestScraper:
             if imgSrc.find('/236x/') != -1:
                 imgSrc = imgSrc.replace('/236x/','/736x/')
                 newLinkSet.append(imgSrc)
-        # changeg
         return newLinkSet
+
 
     def __del__(self):
         if self._browser:
