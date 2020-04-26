@@ -35,7 +35,7 @@ class PinterestScraper:
     # post: _browser object initialized
     def __init__(self, email, password):
         options = Options()
-        options.headless = True
+        # options.headless = True
         ignored_exceptions = (NoSuchElementException, StaleElementReferenceException)
         self._browser = webdriver.Chrome('/Users/rileycullen/chromedriver', options=options)
         self._wait = WebDriverWait(self._browser, 20, ignored_exceptions=ignored_exceptions)
@@ -60,34 +60,42 @@ class PinterestScraper:
     def GetLinkSet(self, linkSetURL):
         MAX_TRIES = 120
         tries = 0
-        linkQueue = deque()
         linkSet = []
+        results = set()
         self._browser.get(linkSetURL)
 
         body = self._browser.find_element_by_tag_name("body")
 
-        while tries < MAX_TRIES:
-            try:
-                time.sleep(2)
-                previousSet = linkSet
-                linkSet = self._wait.until(EC.presence_of_all_elements_located(
-					    (By.CSS_SELECTOR, "a[href*='/pin/']")))
-                # linkQueue = self.__CleanLinkSet(linkSet)
+        try:
+            while tries < MAX_TRIES:
+                try:
+                    time.sleep(2)
+                    previousSet = linkSet
+                    linkSet = self._wait.until(EC.presence_of_all_elements_located(
+					        (By.CSS_SELECTOR, "a[href*='/pin/']")))
 
-                if (previousSet != linkSet):
-                    body.send_keys(Keys.PAGE_DOWN)
-                    body.send_keys(Keys.PAGE_DOWN)
-                    tries = 0
-                else:
-                    tries += 1
+                    results = self.__RemoveDuplicates(results, linkSet)
 
-                for i in range(len(linkSet)):
-                    print(linkSet[i].get_attribute('href'))
-                print("************")
+                    if (previousSet != linkSet):
+                        body.send_keys(Keys.PAGE_DOWN)
+                        body.send_keys(Keys.PAGE_DOWN)
+                        tries = 0
+                    else:
+                        tries += 1
 
-                input()
-            except (StaleElementReferenceException):
-                pass
+                    #for i in range(len(linkSet)):
+                        #print(linkSet[i].get_attribute('href'))
+                    #print("************")
+
+                    # input()
+                except (StaleElementReferenceException):
+                    pass
+        except KeyboardInterrupt:
+            pass
+
+        print("Final linkset: %d"%len(results))
+        for link in results:
+            print(link)
 
     # desc: Removes non-infographic images
     def __CleanLinkSet(self, linkSet):
@@ -99,6 +107,13 @@ class PinterestScraper:
                 newLinkSet.append(imgSrc)
         return newLinkSet
 
+    def __RemoveDuplicates(self, results, linkSet):
+        helper = set(results)
+        for link in linkSet:
+            if link.get_attribute('href') not in helper:
+                results.add(link.get_attribute('href'))
+                helper.add(link.get_attribute('href'))
+        return helper
 
     def __del__(self):
         if self._browser:
