@@ -23,6 +23,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
+from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.support.ui import WebDriverWait
 from collections import deque
 import time
@@ -34,8 +36,9 @@ class PinterestScraper:
     def __init__(self, email, password):
         options = Options()
         options.headless = True
+        ignored_exceptions = (NoSuchElementException, StaleElementReferenceException)
         self._browser = webdriver.Chrome('/Users/rileycullen/chromedriver', options=options)
-        self._wait = WebDriverWait(self._browser, 20)
+        self._wait = WebDriverWait(self._browser, 20, ignored_exceptions=ignored_exceptions)
         self.__Login(email, password)
 
     # desc: Logs into pinterest account with parameterized email/password
@@ -49,7 +52,7 @@ class PinterestScraper:
 
         emailInput.send_keys(email)
         passwordInput.send_keys(password)
-        time.sleep(3)
+        time.sleep(1)
         passwordInput.send_keys(Keys.RETURN)
 
     # desc: Goes to linkSetURL and gets the set of links we will parse
@@ -64,24 +67,27 @@ class PinterestScraper:
         body = self._browser.find_element_by_tag_name("body")
 
         while tries < MAX_TRIES:
-            time.sleep(2)
-            previousSet = linkSet
-            linkSet = self._wait.until(EC.presence_of_all_elements_located(
-					(By.CSS_SELECTOR, "a[href*='/pin/'] img")))
-            linkQueue = self.__CleanLinkSet(linkSet)
+            try:
+                time.sleep(2)
+                previousSet = linkSet
+                linkSet = self._wait.until(EC.presence_of_all_elements_located(
+					    (By.CSS_SELECTOR, "a[href*='/pin/']")))
+                # linkQueue = self.__CleanLinkSet(linkSet)
 
-            if (previousSet != linkSet):
-                body.send_keys(Keys.PAGE_DOWN)
-                body.send_keys(Keys.PAGE_DOWN)
-                tries = 0
-            else:
-                tries += 1
+                if (previousSet != linkSet):
+                    body.send_keys(Keys.PAGE_DOWN)
+                    body.send_keys(Keys.PAGE_DOWN)
+                    tries = 0
+                else:
+                    tries += 1
 
-            for i in range(len(linkQueue)):
-                print(linkQueue[i])
-            print("************")
+                for i in range(len(linkSet)):
+                    print(linkSet[i].get_attribute('href'))
+                print("************")
 
-            input()
+                input()
+            except (StaleElementReferenceException):
+                pass
 
     # desc: Removes non-infographic images
     def __CleanLinkSet(self, linkSet):
