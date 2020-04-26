@@ -13,6 +13,10 @@
 #       1). __CleanInitialSet() defined and implemented
 #   April 21, 2020
 #       2). __CleanInitialSet() --> __CleanLinkSet()
+#   April 25, 2020
+#       1). __RemoveDuplicates() defined and implemented
+#       2). __CleanInitialSet() removed
+#       3). GetLinkSet() updated to scraper entire page and remove duplicates
 
 # To fix:
 #   1. scraper sometimes grabs wrong elements
@@ -82,12 +86,6 @@ class PinterestScraper:
                         tries = 0
                     else:
                         tries += 1
-
-                    #for i in range(len(linkSet)):
-                        #print(linkSet[i].get_attribute('href'))
-                    #print("************")
-
-                    # input()
                 except (StaleElementReferenceException):
                     pass
         except KeyboardInterrupt:
@@ -96,16 +94,6 @@ class PinterestScraper:
         print("Final linkset: %d"%len(results))
         for link in results:
             print(link)
-
-    # desc: Removes non-infographic images
-    def __CleanLinkSet(self, linkSet):
-        newLinkSet = []
-        for i in range(len(linkSet)):
-            imgSrc = linkSet[i].get_attribute('src')
-            if imgSrc.find('/236x/') != -1:
-                imgSrc = imgSrc.replace('/236x/','/736x/')
-                newLinkSet.append(imgSrc)
-        return newLinkSet
 
     def __RemoveDuplicates(self, results, linkSet):
         helper = set(results)
