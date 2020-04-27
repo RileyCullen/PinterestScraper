@@ -91,9 +91,7 @@ class PinterestScraper:
         except KeyboardInterrupt:
             pass
 
-        print("Final linkset: %d"%len(results))
-        for link in results:
-            print(link)
+        return results
 
     def __RemoveDuplicates(self, results, linkSet):
         helper = set(results)
