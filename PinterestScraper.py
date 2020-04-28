@@ -8,7 +8,6 @@
 #      ADAPTED:
 #         a. GetLinkSet() adapts code from runme()
 
-
 # Revision History:
 #   April 18, 2020:
 #       1). __init__(self, str, str) defined and implemented to support the login
@@ -27,12 +26,16 @@
 #   April 27, 2020
 #       1). _links added to keep as an instance variable so the class can access 
 #           the links scraped from <a>
-#       2). ScrapeLinkSet defined and partially implemented (the image collection)
+#       2). ScrapeLinkSet defined and partially implemented (the image collection,
+#           caption collection)
 #       3). __GetHighResImage() defined and implemented
 
 # To fix:
 #   1. scraper sometimes grabs wrong elements
 #   2. Add to results queue (remove duplicates too)
+#   3. Test shorter wait times 
+#       - selenium waits are 20s
+#       - sleeps are 1s
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -41,6 +44,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from collections import deque
 import time
@@ -114,13 +118,24 @@ class PinterestScraper:
             self._browser.get(link)
             print("(%d/%d): "%(loopCount, len(self._links)) + link)
             loopCount += 1
+
+            # Getting image download links
             image = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"div[class='XiG zI7 iyn Hsu'] > img")))
             imageLink = self.__GetHighResImage(image.get_attribute('src'))
-            print("Obtained: " + imageLink)
+            print("Image Link: " + imageLink)
+
             # Get caption
+            print("Caption content:")
+            try:
+                caption = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "span[class='tBJ dyH iFc MF7 pBj DrD IZT swG']")))
+                print(caption.text)
+            except (TimeoutException):
+                print("N/A")
             # Write image to directory
             # Write caption to captions.txt in directory
             # Update main CSV
+            print()
+            print()
 
     def __GetHighResImage(self, imageLink):
         finalLink = ""
