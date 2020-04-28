@@ -2,6 +2,13 @@
 # PinterestScraper.py
 # Created on 4/18/2020
 
+# Sources
+#   1. https://github.com/xjdeng/pinterest-image-scraper/blob/master/pinterest_scraper/scraper.py
+#      DATE RETRIEVED: 4/25/20
+#      ADAPTED:
+#         a. GetLinkSet() adapts code from runme()
+
+
 # Revision History:
 #   April 18, 2020:
 #       1). __init__(self, str, str) defined and implemented to support the login
@@ -17,6 +24,11 @@
 #       1). __RemoveDuplicates() defined and implemented
 #       2). __CleanInitialSet() removed
 #       3). GetLinkSet() updated to scraper entire page and remove duplicates
+#   April 27, 2020
+#       1). _links added to keep as an instance variable so the class can access 
+#           the links scraped from <a>
+#       2). ScrapeLinkSet defined and partially implemented (the image collection)
+#       3). __GetHighResImage() defined and implemented
 
 # To fix:
 #   1. scraper sometimes grabs wrong elements
@@ -39,11 +51,12 @@ class PinterestScraper:
     # post: _browser object initialized
     def __init__(self, email, password):
         options = Options()
-        # options.headless = True
+        options.headless = True
         ignored_exceptions = (NoSuchElementException, StaleElementReferenceException)
         self._browser = webdriver.Chrome('/Users/rileycullen/chromedriver', options=options)
         self._wait = WebDriverWait(self._browser, 20, ignored_exceptions=ignored_exceptions)
         self.__Login(email, password)
+        self._links = set()
 
     # desc: Logs into pinterest account with parameterized email/password
     # pre:  email, password must be valid
@@ -62,7 +75,7 @@ class PinterestScraper:
     # desc: Goes to linkSetURL and gets the set of links we will parse
     # pre:  linkSetURL must be a valid URL to a pinterest pin page
     def GetLinkSet(self, linkSetURL):
-        MAX_TRIES = 120
+        MAX_TRIES = 5
         tries = 0
         linkSet = []
         results = set()
@@ -72,6 +85,7 @@ class PinterestScraper:
 
         try:
             while tries < MAX_TRIES:
+                print("tries: %d"%tries)
                 try:
                     time.sleep(2)
                     previousSet = linkSet
@@ -91,7 +105,28 @@ class PinterestScraper:
         except KeyboardInterrupt:
             pass
 
-        return results
+        self._links = results
+    
+    # class will write to CSV, download images
+    def ScrapeLinkset(self):
+        loopCount = 1
+        for link in self._links:
+            self._browser.get(link)
+            print("(%d/%d): "%(loopCount, len(self._links)) + link)
+            loopCount += 1
+            image = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"div[class='XiG zI7 iyn Hsu'] > img")))
+            imageLink = self.__GetHighResImage(image.get_attribute('src'))
+            print("Obtained: " + imageLink)
+            # Get caption
+            # Write image to directory
+            # Write caption to captions.txt in directory
+            # Update main CSV
+
+    def __GetHighResImage(self, imageLink):
+        finalLink = ""
+        if (imageLink.find("/236x/") != -1):
+            finalLink = imageLink.replace("/236x/", "/736x/")
+        return finalLink
 
     def __RemoveDuplicates(self, results, linkSet):
         helper = set(results)
