@@ -29,6 +29,9 @@
 #       2). ScrapeLinkSet defined and partially implemented (the image collection,
 #           caption collection)
 #       3). __GetHighResImage() defined and implemented
+#   April, 28, 2020
+#       1). __DownloadImages(), __WriteToCaptionsFile(), __CheckForCaptionsTxt()
+#           , and __CreateNewCaptionsText() defined and implemented
 
 # To fix:
 #   1. scraper sometimes grabs wrong elements
@@ -36,6 +39,11 @@
 #   3. Test shorter wait times 
 #       - selenium waits are 20s
 #       - sleeps are 1s
+#   4. Download images, write captions, update CSV
+#       - Captions/images write to same directory
+#           - captions write to directory/captions.txt
+#           - images just write to directory
+#       - CSV updates to "root"
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -47,7 +55,7 @@ from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
 from collections import deque
-import time
+import time, os, requests
 
 class PinterestScraper:
     # desc: initializes webdriver object and logs into pinterest
@@ -61,6 +69,10 @@ class PinterestScraper:
         self._wait = WebDriverWait(self._browser, 20, ignored_exceptions=ignored_exceptions)
         self.__Login(email, password)
         self._links = set()
+        self._downloadPath = "/Users/rileycullen/Seattle University/ShareNW Research Project - Documents/PinterestRepository/TestDir"
+        self._captionsFilename = "captions.txt"
+
+        self.__CheckForCaptionsTxt()
 
     # desc: Logs into pinterest account with parameterized email/password
     # pre:  email, password must be valid
@@ -76,6 +88,20 @@ class PinterestScraper:
         time.sleep(1)
         passwordInput.send_keys(Keys.RETURN)
 
+    def __CheckForCaptionsTxt(self):
+        path = self._downloadPath + "/" + self._captionsFilename
+        if(not os.path.isfile(path)):
+            print(path + " not found... Creating a new copy")
+            self.__CreateNewCaptionsTxt()
+            print("Done")
+        else:
+            print(path + " found!")
+
+    def __CreateNewCaptionsTxt(self):
+        with open(self._captionsFilename, 'w') as f:
+            pass
+
+    
     # desc: Goes to linkSetURL and gets the set of links we will parse
     # pre:  linkSetURL must be a valid URL to a pinterest pin page
     def GetLinkSet(self, linkSetURL):
@@ -114,8 +140,10 @@ class PinterestScraper:
     # class will write to CSV, download images
     def ScrapeLinkset(self):
         loopCount = 1
+        captionContent = ""
         for link in self._links:
             self._browser.get(link)
+            imageName = "img_%d.jpg"%(loopCount)
             print("(%d/%d): "%(loopCount, len(self._links)) + link)
             loopCount += 1
 
@@ -129,20 +157,53 @@ class PinterestScraper:
             try:
                 caption = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "span[class='tBJ dyH iFc MF7 pBj DrD IZT swG']")))
                 print(caption.text)
+                captionContent = caption.text
             except (TimeoutException):
                 print("N/A")
+                captionContent = "N/A"
+
             # Write image to directory
+            imageSuccess = self.__DownloadImage(imageLink, imageName)
             # Write caption to captions.txt in directory
-            # Update main CSV
+            captionSuccess = self.__WriteToCaptionsFile(captionContent, imageName)
+
+            if (imageSuccess and captionSuccess):
+                print("Here should write to CSV")
+
             print()
             print()
 
+    # desc: "Gets" the high res image by replacing /236x/ with /736x/ in the URL
     def __GetHighResImage(self, imageLink):
         finalLink = ""
         if (imageLink.find("/236x/") != -1):
             finalLink = imageLink.replace("/236x/", "/736x/")
         return finalLink
 
+    # desc: Downloads picture to local disk
+    def __DownloadImage(self, imageLink, imageName):
+        try:
+            pictureRequest = requests.get(imageLink)
+        except:
+            print("Error: Image request failed")
+            return False
+
+        with open(self._downloadPath + '/' + imageName, 'wb') as f:
+            f.write(pictureRequest.content)
+            f.close()
+            return True
+        return False
+
+    # desc: Writes captions to caption.txt on local disk
+    def __WriteToCaptionsFile(self, caption, imageName):
+        with open(self._downloadPath + '/' + self._captionsFilename, 'a') as captionsFile:
+            content = "(" + imageName + "):\n\n" + caption + "\n\n"
+            captionsFile.write(content)
+            captionsFile.close()
+            return True
+        return False
+
+    # desc: Removes duplicate links from linkset 
     def __RemoveDuplicates(self, results, linkSet):
         helper = set(results)
         for link in linkSet:
@@ -151,6 +212,7 @@ class PinterestScraper:
                 helper.add(link.get_attribute('href'))
         return helper
 
+    # desc: Closes the selenium browser
     def __del__(self):
         if self._browser:
             self._browser.quit()
