@@ -29,9 +29,12 @@
 #       2). ScrapeLinkSet defined and partially implemented (the image collection,
 #           caption collection)
 #       3). __GetHighResImage() defined and implemented
-#   April, 28, 2020
+#   April 28, 2020
 #       1). __DownloadImages(), __WriteToCaptionsFile(), __CheckForCaptionsTxt()
 #           , and __CreateNewCaptionsText() defined and implemented
+#   April 29, 2020
+#       1). __CheckForCSV(), __CreateNewCSVFile(), and __WriteToCSV() defined
+#           and implemented
 
 # To fix:
 #   1. scraper sometimes grabs wrong elements
@@ -44,6 +47,7 @@
 #           - captions write to directory/captions.txt
 #           - images just write to directory
 #       - CSV updates to "root"
+#   5. Add ability for user to change keyword
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -54,8 +58,7 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
-from collections import deque
-import time, os, requests
+import time, os, requests, csv
 
 class PinterestScraper:
     # desc: initializes webdriver object and logs into pinterest
@@ -71,8 +74,11 @@ class PinterestScraper:
         self._links = set()
         self._downloadPath = "/Users/rileycullen/Seattle University/ShareNW Research Project - Documents/PinterestRepository/TestDir"
         self._captionsFilename = "captions.txt"
+        self._csvFilename = "infographics.csv"
+        self._keyword = "Ukulele"
 
         self.__CheckForCaptionsTxt()
+        self.__CheckForCSV()
 
     # desc: Logs into pinterest account with parameterized email/password
     # pre:  email, password must be valid
@@ -99,9 +105,24 @@ class PinterestScraper:
 
     def __CreateNewCaptionsTxt(self):
         with open(self._captionsFilename, 'w') as f:
-            pass
+            f.close()
 
-    
+    def __CheckForCSV(self):
+        path = self._downloadPath + "/" + self._csvFilename
+        if (not os.path.isfile(path)):
+            print(path + " not found... Creating a new copy")
+            self.__CreateNewCSVFile(path)
+            print("Done")
+        else:
+            print(path + " found!")
+
+    def __CreateNewCSVFile(self, csvPath):
+        csvfile = open(csvPath, 'x', newline='')
+        filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting = 
+                                csv.QUOTE_MINIMAL)
+        filewriter.writerow(['Image filename, Search keyword, Caption filename, URL'])
+        csvfile.close()
+
     # desc: Goes to linkSetURL and gets the set of links we will parse
     # pre:  linkSetURL must be a valid URL to a pinterest pin page
     def GetLinkSet(self, linkSetURL):
@@ -165,10 +186,13 @@ class PinterestScraper:
             # Write image to directory
             imageSuccess = self.__DownloadImage(imageLink, imageName)
             # Write caption to captions.txt in directory
-            captionSuccess = self.__WriteToCaptionsFile(captionContent, imageName)
+            if (imageSuccess):
+                captionSuccess = self.__WriteToCaptionsFile(captionContent, imageName)
+                if (captionSuccess):
+                    self.__WriteToCSVFile(imageName, link)
 
-            if (imageSuccess and captionSuccess):
-                print("Here should write to CSV")
+            # if (imageSuccess and captionSuccess):
+                # print("Here should write to CSV")
 
             print()
             print()
@@ -202,6 +226,12 @@ class PinterestScraper:
             captionsFile.close()
             return True
         return False
+
+    def __WriteToCSVFile(self, imageName, url):
+        csvPath = self._downloadPath + "/" + self._csvFilename
+        with open(csvPath, "a+", newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            writer.writerow([imageName, self._keyword, self._captionsFilename, url])
 
     # desc: Removes duplicate links from linkset 
     def __RemoveDuplicates(self, results, linkSet):
