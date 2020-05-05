@@ -41,6 +41,8 @@
 #   2. Add to results queue (remove duplicates too)
 #   3. Test shorter wait times 
 #       - selenium waits are 20s
+#           - 5s seems to work on test set
+#           - 3s also seems to work on test set
 #       - sleeps are 1s
 #   4. Download images, write captions, update CSV
 #       - Captions/images write to same directory
@@ -58,7 +60,7 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
-import time, os, requests, csv
+import time, os, requests, csv, json
 
 class PinterestScraper:
     # desc: initializes webdriver object and logs into pinterest
@@ -69,11 +71,11 @@ class PinterestScraper:
         options.headless = True
         ignored_exceptions = (NoSuchElementException, StaleElementReferenceException)
         self._browser = webdriver.Chrome('/Users/rileycullen/chromedriver', options=options)
-        self._wait = WebDriverWait(self._browser, 20, ignored_exceptions=ignored_exceptions)
+        self._wait = WebDriverWait(self._browser, 1, ignored_exceptions=ignored_exceptions)
         self.__Login(email, password)
         self._links = set()
         self._downloadPath = "/Users/rileycullen/Seattle University/ShareNW Research Project - Documents/PinterestRepository/TestDir"
-        self._captionsFilename = "captions.txt"
+        self._captionsFilename = "captions.json"
         self._csvFilename = "infographics.csv"
         self._keyword = "Ukulele"
 
@@ -98,13 +100,16 @@ class PinterestScraper:
         path = self._downloadPath + "/" + self._captionsFilename
         if(not os.path.isfile(path)):
             print(path + " not found... Creating a new copy")
-            self.__CreateNewCaptionsTxt()
+            self.__CreateNewCaptionsTxt(path)
             print("Done")
         else:
             print(path + " found!")
 
-    def __CreateNewCaptionsTxt(self):
-        with open(self._captionsFilename, 'w') as f:
+    def __CreateNewCaptionsTxt(self, path):
+        with open(path, 'w') as f:
+            data = {}
+            data['image'] = []
+            json.dump(data, f)
             f.close()
 
     def __CheckForCSV(self):
@@ -120,7 +125,7 @@ class PinterestScraper:
         csvfile = open(csvPath, 'x', newline='')
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting = 
                                 csv.QUOTE_MINIMAL)
-        filewriter.writerow(['Image filename, Search keyword, Caption filename, URL'])
+        filewriter.writerow(['Image filename, Search keyword, Partial caption, URL'])
         csvfile.close()
 
     # desc: Goes to linkSetURL and gets the set of links we will parse
@@ -189,7 +194,7 @@ class PinterestScraper:
             if (imageSuccess):
                 captionSuccess = self.__WriteToCaptionsFile(captionContent, imageName)
                 if (captionSuccess):
-                    self.__WriteToCSVFile(imageName, link)
+                    self.__WriteToCSVFile(imageName, captionContent[0 : 20], link)
 
             # if (imageSuccess and captionSuccess):
                 # print("Here should write to CSV")
@@ -220,18 +225,36 @@ class PinterestScraper:
 
     # desc: Writes captions to caption.txt on local disk
     def __WriteToCaptionsFile(self, caption, imageName):
-        with open(self._downloadPath + '/' + self._captionsFilename, 'a') as captionsFile:
-            content = "(" + imageName + "):\n\n" + caption + "\n\n"
-            captionsFile.write(content)
+        path = self._downloadPath + '/' + self._captionsFilename
+        data = {}
+        data['image'] = []
+        helper = 0
+        with open(path,) as captionsFile:
+            # content = "(" + imageName + "):\n\n" + caption + "\n\n"
+            # captionsFile.write(content)
+            helper = json.load(captionsFile)
+            tmp = helper['image']
+
+            data['image'].append({
+                'image_filename': imageName,
+                'caption': caption
+            })
+
+            tmp.append(data)
+            captionsFile.close()
+        
+        with open(path, 'w') as captionsFile:
+            json.dump(helper, captionsFile, indent=4)
             captionsFile.close()
             return True
+
         return False
 
-    def __WriteToCSVFile(self, imageName, url):
+    def __WriteToCSVFile(self, imageName, partialCaption, url):
         csvPath = self._downloadPath + "/" + self._csvFilename
         with open(csvPath, "a+", newline='') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow([imageName, self._keyword, self._captionsFilename, url])
+            writer.writerow([imageName, self._keyword, partialCaption, url])
 
     # desc: Removes duplicate links from linkset 
     def __RemoveDuplicates(self, results, linkSet):
