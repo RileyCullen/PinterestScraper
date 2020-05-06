@@ -35,21 +35,11 @@
 #   April 29, 2020
 #       1). __CheckForCSV(), __CreateNewCSVFile(), and __WriteToCSV() defined
 #           and implemented
-
-# To fix:
-#   1. scraper sometimes grabs wrong elements
-#   2. Add to results queue (remove duplicates too)
-#   3. Test shorter wait times 
-#       - selenium waits are 20s
-#           - 5s seems to work on test set
-#           - 3s also seems to work on test set
-#       - sleeps are 1s
-#   4. Download images, write captions, update CSV
-#       - Captions/images write to same directory
-#           - captions write to directory/captions.txt
-#           - images just write to directory
-#       - CSV updates to "root"
-#   5. Add ability for user to change keyword
+#   May 5, 2020
+#       1). ScrapeLinkSet updated to take in a keyword and download path from 
+#           user
+#       2). __CheckForDir() and __CreateNewDir() defined and implemented
+#       3). GetRoot() defined and implemented
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -74,13 +64,11 @@ class PinterestScraper:
         self._wait = WebDriverWait(self._browser, 1, ignored_exceptions=ignored_exceptions)
         self.__Login(email, password)
         self._links = set()
-        self._downloadPath = "/Users/rileycullen/Seattle University/ShareNW Research Project - Documents/PinterestRepository/TestDir"
+        self._root = "/Users/rileycullen/Seattle University/ShareNW Research Project - Documents/PinterestRepository"
+        self._downloadPath = ""
         self._captionsFilename = "captions.json"
         self._csvFilename = "infographics.csv"
         self._keyword = "Ukulele"
-
-        self.__CheckForCaptionsTxt()
-        self.__CheckForCSV()
 
     # desc: Logs into pinterest account with parameterized email/password
     # pre:  email, password must be valid
@@ -96,6 +84,8 @@ class PinterestScraper:
         time.sleep(1)
         passwordInput.send_keys(Keys.RETURN)
 
+    # desc: Checks to see if there is a JSON file already in the directory that
+    #       the user wants to write to
     def __CheckForCaptionsTxt(self):
         path = self._downloadPath + "/" + self._captionsFilename
         if(not os.path.isfile(path)):
@@ -105,6 +95,7 @@ class PinterestScraper:
         else:
             print(path + " found!")
 
+    # desc: Creates a new JSON file to hold the image captions
     def __CreateNewCaptionsTxt(self, path):
         with open(path, 'w') as f:
             data = {}
@@ -112,6 +103,8 @@ class PinterestScraper:
             json.dump(data, f)
             f.close()
 
+    # desc: Checks to see if there is a CSV file in the directory that the user
+    #       wants to write to
     def __CheckForCSV(self):
         path = self._downloadPath + "/" + self._csvFilename
         if (not os.path.isfile(path)):
@@ -121,6 +114,7 @@ class PinterestScraper:
         else:
             print(path + " found!")
 
+    # desc: Creates a new CSV file
     def __CreateNewCSVFile(self, csvPath):
         csvfile = open(csvPath, 'x', newline='')
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting = 
@@ -128,13 +122,37 @@ class PinterestScraper:
         filewriter.writerow(['Image filename, Search keyword, Partial caption, URL'])
         csvfile.close()
 
+    # desc: Checks if the user's directory exists
+    def __CheckForDir(self):
+        if (not os.path.isdir(self._downloadPath)):
+            print(self._downloadPath + " not found... Creating a new directory")
+            self.__CreateNewDir()
+        else:
+            print(self._downloadPath + " found!")
+
+    # desc: Creates a new directory to save data to
+    def __CreateNewDir(self):
+        try:
+            os.mkdir(self._downloadPath)
+            print("Done")
+        except OSError as err:
+            print(err)
+
     # desc: Goes to linkSetURL and gets the set of links we will parse
     # pre:  linkSetURL must be a valid URL to a pinterest pin page
-    def GetLinkSet(self, linkSetURL):
+    def GetLinkSet(self, linkSetURL, keyword, path):
         MAX_TRIES = 5
         tries = 0
         linkSet = []
         results = set()
+        
+        self._keyword = keyword
+        self._downloadPath = self._root + '/' + path
+
+        self.__CheckForDir()
+        self.__CheckForCSV()
+        self.__CheckForCaptionsTxt()
+
         self._browser.get(linkSetURL)
 
         body = self._browser.find_element_by_tag_name("body")
@@ -250,6 +268,7 @@ class PinterestScraper:
 
         return False
 
+    # desc: Writes image name, keyword, a partial caption, and url to CSV
     def __WriteToCSVFile(self, imageName, partialCaption, url):
         csvPath = self._downloadPath + "/" + self._csvFilename
         with open(csvPath, "a+", newline='') as csvfile:
@@ -264,6 +283,10 @@ class PinterestScraper:
                 results.add(link.get_attribute('href'))
                 helper.add(link.get_attribute('href'))
         return helper
+
+    # desc: Returns the root directory the program will write to
+    def GetRoot(self):
+        return self._root
 
     # desc: Closes the selenium browser
     def __del__(self):
