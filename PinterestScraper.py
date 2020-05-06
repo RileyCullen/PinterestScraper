@@ -245,7 +245,6 @@ class PinterestScraper:
     def __WriteToCaptionsFile(self, caption, imageName):
         path = self._downloadPath + '/' + self._captionsFilename
         data = {}
-        data['image'] = []
         helper = 0
         with open(path,) as captionsFile:
             # content = "(" + imageName + "):\n\n" + caption + "\n\n"
@@ -253,10 +252,10 @@ class PinterestScraper:
             helper = json.load(captionsFile)
             tmp = helper['image']
 
-            data['image'].append({
+            data = {
                 'image_filename': imageName,
                 'caption': caption
-            })
+            }
 
             tmp.append(data)
             captionsFile.close()
