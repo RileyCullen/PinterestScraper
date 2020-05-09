@@ -1,6 +1,12 @@
 # Cullen, Riley 
 # PinterestScraper.py
-# Created on /5/2020
+# Created on 5/5/2020
+
+# Revision History
+#   May 5, 2020:
+#       1). Main() and RunScraper defined and implemented
+#   May 8, 2020:
+#       1). PrintCommandList() defined and implemented
 
 import sys, PinterestScraper, requests, bs4, csv, os
 
@@ -27,7 +33,12 @@ def RunScraper():
             linkSetURL = input("What pinterest page do you wanna scrape? ")
             pinObj.GetLinkSet(linkSetURL, keyword, path)
             pinObj.ScrapeLinkset()
+        elif (usrInput == 'help'):
+            PrintCommandList()
 
+def PrintCommandList():
+    print("\nCommands:\nscrape - runs Pinterest Scraper\nquit - Terminates program")
+    print("\n")
 
 if __name__ == "__main__":
     Main()
