@@ -40,6 +40,8 @@
 #           user
 #       2). __CheckForDir() and __CreateNewDir() defined and implemented
 #       3). GetRoot() defined and implemented
+#   May 8, 2020
+#       1). ScrapeLinkSet updated to take title 
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -61,12 +63,12 @@ class PinterestScraper:
         options.headless = True
         ignored_exceptions = (NoSuchElementException, StaleElementReferenceException)
         self._browser = webdriver.Chrome('/Users/rileycullen/chromedriver', options=options)
-        self._wait = WebDriverWait(self._browser, 1, ignored_exceptions=ignored_exceptions)
+        self._wait = WebDriverWait(self._browser, 2, ignored_exceptions=ignored_exceptions)
         self.__Login(email, password)
         self._links = set()
         self._root = "/Users/rileycullen/Seattle University/ShareNW Research Project - Documents/PinterestRepository"
         self._downloadPath = ""
-        self._captionsFilename = "captions.json"
+        self._captionsFilename = "metadata.json"
         self._csvFilename = "infographics.csv"
         self._keyword = "Ukulele"
 
@@ -184,10 +186,14 @@ class PinterestScraper:
     # class will write to CSV, download images
     def ScrapeLinkset(self):
         loopCount = 1
+        successCount = 1
         captionContent = ""
+        titleContent = ""
+        doesTitleExist = False
+        
         for link in self._links:
             self._browser.get(link)
-            imageName = "img_%d.jpg"%(loopCount)
+            imageName = self._keyword + "_%d.jpg"%(successCount)
             print("(%d/%d): "%(loopCount, len(self._links)) + link)
             loopCount += 1
 
@@ -196,26 +202,39 @@ class PinterestScraper:
             imageLink = self.__GetHighResImage(image.get_attribute('src'))
             print("Image Link: " + imageLink)
 
+            # Get title
+            try:
+                title = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "h1[class='lH1 dyH iFc ky3 pBj DrD IZT']")))
+                titleContent = title.text
+                doesTitleExist = True
+            except (TimeoutException):
+                doesTitleExist = False
+                titleContent = "N/A"
+            print("Title content:\n" + titleContent)
+
+            # Get source
+
             # Get caption
-            print("Caption content:")
+            print("\nCaption content:\n")
             try:
                 caption = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "span[class='tBJ dyH iFc MF7 pBj DrD IZT swG']")))
-                print(caption.text)
                 captionContent = caption.text
             except (TimeoutException):
-                print("N/A")
                 captionContent = "N/A"
+
+            print(captionContent)
 
             # Write image to directory
             imageSuccess = self.__DownloadImage(imageLink, imageName)
             # Write caption to captions.txt in directory
             if (imageSuccess):
-                captionSuccess = self.__WriteToCaptionsFile(captionContent, imageName)
+                successCount += 1
+                captionSuccess = self.__WriteToMetadataFile(imageName, captionContent, titleContent)
                 if (captionSuccess):
-                    self.__WriteToCSVFile(imageName, captionContent[0 : 20], link)
-
-            # if (imageSuccess and captionSuccess):
-                # print("Here should write to CSV")
+                    if (not doesTitleExist):
+                        self.__WriteToCSVFile(imageName, captionContent[0 : 20], link)
+                    else:
+                        self.__WriteToCSVFile(imageName, titleContent[0 : 20], link)
 
             print()
             print()
@@ -242,7 +261,7 @@ class PinterestScraper:
         return False
 
     # desc: Writes captions to caption.txt on local disk
-    def __WriteToCaptionsFile(self, caption, imageName):
+    def __WriteToMetadataFile(self, imageName, title, caption):
         path = self._downloadPath + '/' + self._captionsFilename
         data = {}
         helper = 0
@@ -254,6 +273,7 @@ class PinterestScraper:
 
             data = {
                 'image_filename': imageName,
+                'title': title, 
                 'caption': caption
             }
 
