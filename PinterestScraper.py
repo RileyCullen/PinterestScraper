@@ -42,6 +42,13 @@
 #       3). GetRoot() defined and implemented
 #   May 8, 2020
 #       1). ScrapeLinkSet updated to take title 
+#   May 9, 2020
+#       1). ScrapeLinkSet updated to take in source as well
+#       2). __WriteToCaptionsFile() --> __WriteToMetadataFile(). Also updated to
+#           write source and title
+#       3). __WriteToCSV updated to write title if the title exists and the 
+#           caption if there is no title
+
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -183,12 +190,14 @@ class PinterestScraper:
 
         self._links = results
     
-    # class will write to CSV, download images
+    # desc: Goes to each link within the linkset and downloads an image, caption,
+    #       title, and source.
     def ScrapeLinkset(self):
         loopCount = 1
         successCount = 1
         captionContent = ""
         titleContent = ""
+        srcContent = ""
         doesTitleExist = False
         
         for link in self._links:
@@ -210,9 +219,15 @@ class PinterestScraper:
             except (TimeoutException):
                 doesTitleExist = False
                 titleContent = "N/A"
-            print("Title content:\n" + titleContent)
+            print("\nTitle content:\n\n" + titleContent)
 
             # Get source
+            try:
+                source = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[class='Jea jzS zI7 iyn Hsu'] a[class='linkModuleActionButton']")))
+                srcContent = source.get_attribute('href')
+            except:
+                srcContent = "N/A"
+            print("\nSource content:\n\n" + srcContent)
 
             # Get caption
             print("\nCaption content:\n")
@@ -229,7 +244,7 @@ class PinterestScraper:
             # Write caption to captions.txt in directory
             if (imageSuccess):
                 successCount += 1
-                captionSuccess = self.__WriteToMetadataFile(imageName, captionContent, titleContent)
+                captionSuccess = self.__WriteToMetadataFile(imageName, titleContent, srcContent, captionContent)
                 if (captionSuccess):
                     if (not doesTitleExist):
                         self.__WriteToCSVFile(imageName, captionContent[0 : 20], link)
@@ -261,7 +276,7 @@ class PinterestScraper:
         return False
 
     # desc: Writes captions to caption.txt on local disk
-    def __WriteToMetadataFile(self, imageName, title, caption):
+    def __WriteToMetadataFile(self, imageName, title, source, caption):
         path = self._downloadPath + '/' + self._captionsFilename
         data = {}
         helper = 0
@@ -274,6 +289,7 @@ class PinterestScraper:
             data = {
                 'image_filename': imageName,
                 'title': title, 
+                'source': source,
                 'caption': caption
             }
 
