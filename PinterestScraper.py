@@ -49,14 +49,6 @@
 #       3). __WriteToCSV updated to write title if the title exists and the 
 #           caption if there is no title
 
-# TODO 
-#   1. Update documentation
-#   2. Modify image naming system so that multiple word keywords have '_' not 
-#      spaces when writing filenames
-
-# Class Invariants:
-# Interface Invariants:
-
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
@@ -334,7 +326,3 @@ class PinterestScraper:
     def __del__(self):
         if self._browser:
             self._browser.quit()
-
-
-# Implementation Invariants:
-#   1. 
