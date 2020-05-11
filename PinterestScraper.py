@@ -49,6 +49,13 @@
 #       3). __WriteToCSV updated to write title if the title exists and the 
 #           caption if there is no title
 
+# TODO 
+#   1. Update documentation
+#   2. Modify image naming system so that multiple word keywords have '_' not 
+#      spaces when writing filenames
+
+# Class Invariants:
+# Interface Invariants:
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -77,7 +84,7 @@ class PinterestScraper:
         self._downloadPath = ""
         self._captionsFilename = "metadata.json"
         self._csvFilename = "infographics.csv"
-        self._keyword = "Ukulele"
+        self._keyword = ""
 
     # desc: Logs into pinterest account with parameterized email/password
     # pre:  email, password must be valid
@@ -202,7 +209,7 @@ class PinterestScraper:
         
         for link in self._links:
             self._browser.get(link)
-            imageName = self._keyword + "_%d.jpg"%(successCount)
+            imageName = self._keyword.replace(" ", "_") + "_%d.jpg"%(successCount)
             print("(%d/%d): "%(loopCount, len(self._links)) + link)
             loopCount += 1
 
@@ -327,3 +334,7 @@ class PinterestScraper:
     def __del__(self):
         if self._browser:
             self._browser.quit()
+
+
+# Implementation Invariants:
+#   1. 
