@@ -12,6 +12,8 @@
 #       2). User no longer enters password when starting program. Passwords are
 #           entered after the program begins
 #       3). GetEmail() defined and implemented
+#   May 13, 2020:
+#       1). Function documentation updated
 
 import sys, PinterestScraper, requests, bs4, csv, os, getpass
 
@@ -22,6 +24,12 @@ def Main():
     else:
         print('invalid arguments... python3 scraper.py [email] required')
 
+# desc: Main loop for scraper shell
+# 
+# Parameters:
+# ------------
+# password : string
+#       Holds the user entered password
 def RunScraper(password):
     isRunning = True
     pinObj = PinterestScraper.PinterestScraper(sys.argv[1], password)
@@ -47,13 +55,16 @@ def RunScraper(password):
         elif (usrInput == 'help'):
             PrintCommandList()
 
+# desc: Prints out the currently supported commands 
 def PrintCommandList():
     print("\nCommands:\nscrape - runs Pinterest Scraper\nquit - Terminates program")
     print("\n")
 
+# desc: Receives and returns the user's password
 def GetPassword():
     return getpass.getpass("Password: ")
 
+# desc: Receives and returns the user's email
 def GetEmail():
     return input("Username: ")
 

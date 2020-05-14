@@ -55,6 +55,7 @@
 #       3). GetLoginStatus() defined and implemented
 #   May 13, 2020
 #       1). Login() updated so that if it fails, it sets hasLoggedIn to false
+#       2). Function parameter documentation updated
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -71,6 +72,14 @@ class PinterestScraper:
     # desc: initializes webdriver object and logs into pinterest
     # pre:  email, password must be valid
     # post: _browser object initialized
+    #
+    # Parameters:
+    # ---------------
+    # email : string
+    #       Holds the email/username we will use to login to pinterest account
+    #
+    # password : string
+    #       Holds the password we will use to login to pinterest account      
     def __init__(self, email, password):
         options = Options()
         options.headless = True
@@ -89,6 +98,14 @@ class PinterestScraper:
     # desc: Logs into pinterest account with parameterized email/password
     # post: __hasLoggedIn initialized to True if login was successful and false if
     #       login was failed.
+    #
+    # Parameters:
+    # ---------------
+    # email : string
+    #       Holds the email/username we will use to login to pinterest account
+    #
+    # password : string
+    #       Holds the password we will use to login to pinterest account   
     def Login(self, email, password):
         loginURL = 'https://www.pinterest.com/login/'
         self._browser.get(loginURL)
@@ -123,6 +140,10 @@ class PinterestScraper:
             print(path + " found!")
 
     # desc: Creates a new JSON file to hold the image captions
+    # 
+    # Parameters:
+    # ---------------
+    # path : string holds the path of metadata.txt.
     def __CreateNewCaptionsTxt(self, path):
         with open(path, 'w') as f:
             data = {}
@@ -142,6 +163,11 @@ class PinterestScraper:
             print(path + " found!")
 
     # desc: Creates a new CSV file
+    # 
+    # Parameters:
+    # ---------------
+    # csvPath : string
+    #       Holds the path of infographics.csv in the filesystem.
     def __CreateNewCSVFile(self, csvPath):
         csvfile = open(csvPath, 'x', newline='')
         filewriter = csv.writer(csvfile, delimiter=',', quotechar='|', quoting = 
@@ -168,6 +194,18 @@ class PinterestScraper:
     # desc: Goes to linkSetURL and gets the set of links we will parse
     # pre:  linkSetURL must be a valid URL to a pinterest pin page, hasLoggedIn
     #       must be true
+    # 
+    # Parameters:
+    # ---------------
+    # linkSetURL : string
+    #       Holds the pinterest board that we want to scrape for pins.
+    #
+    # keyword : string
+    #       Holds the search term associated with the linkSetURL.
+    #
+    # path : string
+    #       Holds the path on the filesystem we want to save the images and 
+    #       metadata to.
     def GetLinkSet(self, linkSetURL, keyword, path):
         MAX_TRIES = 5
         tries = 0
@@ -275,6 +313,11 @@ class PinterestScraper:
             print()
 
     # desc: "Gets" the high res image by replacing /236x/ with /736x/ in the URL
+    # 
+    # Parameters:
+    # ---------------
+    # imageLink : string
+    #       Holds the link to the image we want to download
     def __GetHighResImage(self, imageLink):
         finalLink = ""
         if (imageLink.find("/236x/") != -1):
@@ -282,6 +325,14 @@ class PinterestScraper:
         return finalLink
 
     # desc: Downloads picture to local disk
+    # 
+    # Parameters:
+    # ---------------
+    # imageLink : string
+    #       Holds the link to the image we want to download
+    #
+    # imageName : string
+    #       Holds the name we want to save the image as
     def __DownloadImage(self, imageLink, imageName):
         try:
             pictureRequest = requests.get(imageLink)
@@ -296,6 +347,20 @@ class PinterestScraper:
         return False
 
     # desc: Writes captions to caption.txt on local disk
+    # 
+    # Parameters:
+    # ---------------
+    # imageName : string
+    #       The name of the image we saved to the disk
+    #
+    # title : string
+    #       Title associated with the saved image
+    #
+    # source : string
+    #       Source associated with the saved image
+    #
+    # caption : string
+    #       Caption associated with the saved image
     def __WriteToMetadataFile(self, imageName, title, source, caption):
         path = self._downloadPath + '/' + self._captionsFilename
         data = {}
@@ -324,6 +389,17 @@ class PinterestScraper:
         return False
 
     # desc: Writes image name, keyword, a partial caption, and url to CSV
+    # 
+    # Parameters:
+    # ---------------
+    # imageName : string
+    #       The name of the image we saved to the disk
+    #
+    # partialCaption : string
+    #       A partial caption associated with the saved image
+    #
+    # url : string
+    #       URL to the pin we want to download
     def __WriteToCSVFile(self, imageName, partialCaption, url):
         csvPath = self._downloadPath + "/" + self._csvFilename
         with open(csvPath, "a+", newline='') as csvfile:
@@ -331,6 +407,15 @@ class PinterestScraper:
             writer.writerow([imageName, self._keyword, partialCaption, url])
 
     # desc: Removes duplicate links from linkset 
+    # 
+    # Parameters:
+    # ---------------
+    # results : set
+    #       A set of pins scraped from the user given pinterest board with the 
+    #       duplicate pins removed
+    #
+    # linkSet : list
+    #       A list of pins from the most recent scrape of the board
     def __RemoveDuplicates(self, results, linkSet):
         helper = set(results)
         for link in linkSet:
