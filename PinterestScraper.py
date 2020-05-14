@@ -48,6 +48,13 @@
 #           write source and title
 #       3). __WriteToCSV updated to write title if the title exists and the 
 #           caption if there is no title
+#   May 12, 2020
+#       1). __Login() --> Login() so that if the log in fails, user can try again
+#       2). Login() returns True if the login was successful and False if the login
+#           failed.
+#       3). GetLoginStatus() defined and implemented
+#   May 13, 2020
+#       1). Login() updated so that if it fails, it sets hasLoggedIn to false
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -70,7 +77,8 @@ class PinterestScraper:
         ignored_exceptions = (NoSuchElementException, StaleElementReferenceException)
         self._browser = webdriver.Chrome('/Users/rileycullen/chromedriver', options=options)
         self._wait = WebDriverWait(self._browser, 2, ignored_exceptions=ignored_exceptions)
-        self.__Login(email, password)
+        self.__hasLoggedIn = False
+        self.Login(email, password)
         self._links = set()
         self._root = "/Users/rileycullen/Seattle University/ShareNW Research Project - Documents/PinterestRepository"
         self._downloadPath = ""
@@ -79,8 +87,9 @@ class PinterestScraper:
         self._keyword = ""
 
     # desc: Logs into pinterest account with parameterized email/password
-    # pre:  email, password must be valid
-    def __Login(self, email, password):
+    # post: __hasLoggedIn initialized to True if login was successful and false if
+    #       login was failed.
+    def Login(self, email, password):
         loginURL = 'https://www.pinterest.com/login/'
         self._browser.get(loginURL)
 
@@ -91,6 +100,16 @@ class PinterestScraper:
         passwordInput.send_keys(password)
         time.sleep(1)
         passwordInput.send_keys(Keys.RETURN)
+    
+        try:
+            feedItem = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-test-id='homefeed-feed']")))
+        except (TimeoutException):
+            feedItem = 0
+
+        if (feedItem != 0):
+            self.__hasLoggedIn = True
+        else:
+            self.__hasLoggedIn = False
 
     # desc: Checks to see if there is a JSON file already in the directory that
     #       the user wants to write to
@@ -147,7 +166,8 @@ class PinterestScraper:
             print(err)
 
     # desc: Goes to linkSetURL and gets the set of links we will parse
-    # pre:  linkSetURL must be a valid URL to a pinterest pin page
+    # pre:  linkSetURL must be a valid URL to a pinterest pin page, hasLoggedIn
+    #       must be true
     def GetLinkSet(self, linkSetURL, keyword, path):
         MAX_TRIES = 5
         tries = 0
@@ -191,6 +211,7 @@ class PinterestScraper:
     
     # desc: Goes to each link within the linkset and downloads an image, caption,
     #       title, and source.
+    # pre:  hasLoggedIn must be true
     def ScrapeLinkset(self):
         loopCount = 1
         successCount = 1
@@ -321,6 +342,9 @@ class PinterestScraper:
     # desc: Returns the root directory the program will write to
     def GetRoot(self):
         return self._root
+
+    def GetLoginStatus(self):
+        return self.__hasLoggedIn
 
     # desc: Closes the selenium browser
     def __del__(self):
