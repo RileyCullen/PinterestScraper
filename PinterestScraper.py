@@ -56,6 +56,9 @@
 #   May 13, 2020
 #       1). Login() updated so that if it fails, it sets hasLoggedIn to false
 #       2). Function parameter documentation updated
+#   May 15, 2020:
+#       1). ScrapeLinkset() now gets title from external website if caption and 
+#           title don't exist on pin
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -66,7 +69,7 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
-import time, os, requests, csv, json
+import time, os, requests, csv, json, TitleParser
 
 class PinterestScraper:
     # desc: initializes webdriver object and logs into pinterest
@@ -296,6 +299,9 @@ class PinterestScraper:
                 captionContent = "N/A"
 
             print(captionContent)
+
+            if (captionContent == "N/A" and titleContent == "N/A" and srcContent != "N/A"):
+                titleContent = TitleParser.GetTitle(srcContent)                
 
             # Write image to directory
             imageSuccess = self.__DownloadImage(imageLink, imageName)
