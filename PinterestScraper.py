@@ -59,6 +59,14 @@
 #   May 15, 2020:
 #       1). ScrapeLinkset() now gets title from external website if caption and 
 #           title don't exist on pin
+#   May 16, 2020:
+#       1). ScrapeLinkset() updated so that it gets title from source website if 
+#           if title doesn't exist (there may or may not be a caption on the pin)
+#       2). ScrapeLinkset() arguments updated so the user does not enter directory
+#           name and instead the name is made from keyword
+
+# TODO
+#   1. If title is blank, scraper should write N/A
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -205,18 +213,14 @@ class PinterestScraper:
     #
     # keyword : string
     #       Holds the search term associated with the linkSetURL.
-    #
-    # path : string
-    #       Holds the path on the filesystem we want to save the images and 
-    #       metadata to.
-    def GetLinkSet(self, linkSetURL, keyword, path):
+    def GetLinkSet(self, linkSetURL, keyword):
         MAX_TRIES = 5
         tries = 0
         linkSet = []
         results = set()
         
         self._keyword = keyword
-        self._downloadPath = self._root + '/' + path
+        self._downloadPath = self._root + '/' + self._keyword.replace(" ", "")
 
         self.__CheckForDir()
         self.__CheckForCSV()
@@ -300,8 +304,11 @@ class PinterestScraper:
 
             print(captionContent)
 
-            if (captionContent == "N/A" and titleContent == "N/A" and srcContent != "N/A"):
-                titleContent = TitleParser.GetTitle(srcContent)                
+            if (titleContent == "N/A" and srcContent != "N/A"):
+                try:
+                    titleContent = TitleParser.GetTitle(srcContent) 
+                except:
+                    titleContent = "N/A"
 
             # Write image to directory
             imageSuccess = self.__DownloadImage(imageLink, imageName)

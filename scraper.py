@@ -14,6 +14,9 @@
 #       3). GetEmail() defined and implemented
 #   May 13, 2020:
 #       1). Function documentation updated
+#   May 16, 2020:
+#       1). RunScraper updated so user only has to enter keyword instead of having
+#           to enter keyword and directory (this is usually the same)
 
 import sys, PinterestScraper, requests, bs4, csv, os, getpass
 
@@ -47,10 +50,9 @@ def RunScraper(password):
         if (usrInput == 'quit'):
             isRunning = False
         elif (usrInput == 'scrape'):
-            path = input("\nDirectory: ")
             keyword = input("Keyword: ")
             linkSetURL = input("What pinterest page do you wanna scrape? ")
-            pinObj.GetLinkSet(linkSetURL, keyword, path)
+            pinObj.GetLinkSet(linkSetURL, keyword)
             pinObj.ScrapeLinkset()
         elif (usrInput == 'help'):
             PrintCommandList()
