@@ -64,6 +64,9 @@
 #           if title doesn't exist (there may or may not be a caption on the pin)
 #       2). ScrapeLinkset() arguments updated so the user does not enter directory
 #           name and instead the name is made from keyword
+#   May 19, 2020:
+#       1). ScrapeLinkset() updated so that images smaller than a certain size are
+#           filtered out
 
 # TODO
 #   1. If title is blank, scraper should write N/A
@@ -77,7 +80,7 @@ from selenium.common.exceptions import NoSuchElementException
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.support.ui import WebDriverWait
-import time, os, requests, csv, json, TitleParser
+import time, os, requests, csv, json, TitleParser, ImageFilter
 
 class PinterestScraper:
     # desc: initializes webdriver object and logs into pinterest
@@ -105,6 +108,8 @@ class PinterestScraper:
         self._captionsFilename = "metadata.json"
         self._csvFilename = "infographics.csv"
         self._keyword = ""
+        self.__verticalMin = 900
+        self.__horizontalMin = 500
 
     # desc: Logs into pinterest account with parameterized email/password
     # post: __hasLoggedIn initialized to True if login was successful and false if
@@ -255,7 +260,8 @@ class PinterestScraper:
         self._links = results
     
     # desc: Goes to each link within the linkset and downloads an image, caption,
-    #       title, and source.
+    #       title, and source. Also filters out images that are not bigger than
+    #       a user defined size.
     # pre:  hasLoggedIn must be true
     def ScrapeLinkset(self):
         loopCount = 1
@@ -276,54 +282,58 @@ class PinterestScraper:
             imageLink = self.__GetHighResImage(image.get_attribute('src'))
             print("Image Link: " + imageLink)
 
-            # Get title
-            try:
-                title = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "h1[class='lH1 dyH iFc ky3 pBj DrD IZT']")))
-                titleContent = title.text
-                doesTitleExist = True
-            except (TimeoutException):
-                doesTitleExist = False
-                titleContent = "N/A"
-            print("\nTitle content:\n\n" + titleContent)
-
-            # Get source
-            try:
-                source = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[class='Jea jzS zI7 iyn Hsu'] a[class='linkModuleActionButton']")))
-                srcContent = source.get_attribute('href')
-            except:
-                srcContent = "N/A"
-            print("\nSource content:\n\n" + srcContent)
-
-            # Get caption
-            print("\nCaption content:\n")
-            try:
-                caption = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "span[class='tBJ dyH iFc MF7 pBj DrD IZT swG']")))
-                captionContent = caption.text
-            except (TimeoutException):
-                captionContent = "N/A"
-
-            print(captionContent)
-
-            if (titleContent == "N/A" and srcContent != "N/A"):
+            if (ImageFilter.IsImageGreaterThanBounds(imageLink, self.__horizontalMin, self.__verticalMin)):
+                # Get title
                 try:
-                    titleContent = TitleParser.GetTitle(srcContent) 
-                except:
+                    title = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "h1[class='lH1 dyH iFc ky3 pBj DrD IZT']")))
+                    titleContent = title.text
+                    doesTitleExist = True
+                except (TimeoutException):
+                    doesTitleExist = False
                     titleContent = "N/A"
+                print("\nTitle content:\n\n" + titleContent)
 
-            # Write image to directory
-            imageSuccess = self.__DownloadImage(imageLink, imageName)
-            # Write caption to captions.txt in directory
-            if (imageSuccess):
-                successCount += 1
-                captionSuccess = self.__WriteToMetadataFile(imageName, titleContent, srcContent, captionContent)
-                if (captionSuccess):
-                    if (not doesTitleExist):
-                        self.__WriteToCSVFile(imageName, captionContent[0 : 20], link)
-                    else:
-                        self.__WriteToCSVFile(imageName, titleContent[0 : 20], link)
+                # Get source
+                try:
+                    source = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[class='Jea jzS zI7 iyn Hsu'] a[class='linkModuleActionButton']")))
+                    srcContent = source.get_attribute('href')
+                except:
+                    srcContent = "N/A"
+                print("\nSource content:\n\n" + srcContent)
 
-            print()
-            print()
+                # Get caption
+                print("\nCaption content:\n")
+                try:
+                    caption = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "span[class='tBJ dyH iFc MF7 pBj DrD IZT swG']")))
+                    captionContent = caption.text
+                except (TimeoutException):
+                    captionContent = "N/A"
+
+                print(captionContent)
+
+                if (titleContent == "N/A" and srcContent != "N/A"):
+                    try:
+                        titleContent = TitleParser.GetTitle(srcContent) 
+                    except:
+                        titleContent = "N/A"
+
+                # Write image to directory
+                imageSuccess = self.__DownloadImage(imageLink, imageName)
+                # Write caption to captions.txt in directory
+                if (imageSuccess):
+                    successCount += 1
+                    captionSuccess = self.__WriteToMetadataFile(imageName, titleContent, srcContent, captionContent)
+                    if (captionSuccess):
+                        if (not doesTitleExist):
+                            self.__WriteToCSVFile(imageName, captionContent[0 : 20], link)
+                        else:
+                            self.__WriteToCSVFile(imageName, titleContent[0 : 20], link)
+
+                print()
+                print()
+            else:
+                print("Image not greater than bounds: " + imageLink)
+
 
     # desc: "Gets" the high res image by replacing /236x/ with /736x/ in the URL
     # 
@@ -349,15 +359,13 @@ class PinterestScraper:
     def __DownloadImage(self, imageLink, imageName):
         try:
             pictureRequest = requests.get(imageLink)
+            with open(self._downloadPath + '/' + imageName, 'wb') as f:
+                f.write(pictureRequest.content)
+                f.close()
+            return True
         except:
             print("Error: Image request failed")
             return False
-
-        with open(self._downloadPath + '/' + imageName, 'wb') as f:
-            f.write(pictureRequest.content)
-            f.close()
-            return True
-        return False
 
     # desc: Writes captions to caption.txt on local disk
     # 
