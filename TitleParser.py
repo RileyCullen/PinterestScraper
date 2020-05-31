@@ -25,11 +25,11 @@ def GetTitle(url):
         soupObj = bs4.BeautifulSoup(requestsObject.text, "html.parser")
 
         title = soupObj.find("title").string
+        if (len(title) == 0):
+            title = 'N/A'
     except requests.exceptions.HTTPError:   
         pass
     except requests.exceptions.RequestException as exc:
         print(exc) 
 
     return title
-
-print(GetTitle('http://www.ottoolkit.com/blog/?p=2484'))

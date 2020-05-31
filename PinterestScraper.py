@@ -108,8 +108,8 @@ class PinterestScraper:
         self._captionsFilename = "metadata.json"
         self._csvFilename = "infographics.csv"
         self._keyword = ""
-        self.__verticalMin = 900
-        self.__horizontalMin = 500
+        self.__verticalMin = 500    # 500
+        self.__horizontalMin = 450  # 450
 
     # desc: Logs into pinterest account with parameterized email/password
     # post: __hasLoggedIn initialized to True if login was successful and false if
@@ -246,9 +246,11 @@ class PinterestScraper:
 
                     results = self.__RemoveDuplicates(results, linkSet)
 
+                    body.send_keys(Keys.PAGE_DOWN)
+
                     if (previousSet != linkSet):
-                        body.send_keys(Keys.PAGE_DOWN)
-                        body.send_keys(Keys.PAGE_DOWN)
+                        # body.send_keys(Keys.PAGE_DOWN)
+                        # body.send_keys(Keys.PAGE_DOWN)
                         tries = 0
                     else:
                         tries += 1
@@ -279,8 +281,12 @@ class PinterestScraper:
 
             # Getting image download links
             image = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"div[class='XiG zI7 iyn Hsu'] > img")))
+            print("Initial request: " + image.get_attribute('src'))
             imageLink = self.__GetHighResImage(image.get_attribute('src'))
-            print("Image Link: " + imageLink)
+            print("Final Request: " + imageLink)
+
+            # if (len(imageLink) == 0):
+                # imageLink = image.get_attribute('src')
 
             if (ImageFilter.IsImageGreaterThanBounds(imageLink, self.__horizontalMin, self.__verticalMin)):
                 # Get title
@@ -328,11 +334,11 @@ class PinterestScraper:
                             self.__WriteToCSVFile(imageName, captionContent[0 : 20], link)
                         else:
                             self.__WriteToCSVFile(imageName, titleContent[0 : 20], link)
-
-                print()
-                print()
             else:
                 print("Image not greater than bounds: " + imageLink)
+            
+            print()
+            print()
 
 
     # desc: "Gets" the high res image by replacing /236x/ with /736x/ in the URL

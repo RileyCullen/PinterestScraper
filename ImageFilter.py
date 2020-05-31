@@ -27,14 +27,17 @@ import requests
 # True: if image size is greater than the bounds specified by the user
 # False: if the image size is less than the bounds specified by the user
 def IsImageGreaterThanBounds(url, hMin, vMin):
-    imageRequest = requests.get(url)
-    try:
-        imageRequest.raise_for_status
-        image = Image.open(BytesIO(imageRequest.content))
-        imageWidth, imageHeight = image.size
-        if (imageWidth > hMin and imageHeight > vMin):
-            return True
-    except Exception as exc:
-        print(exc)
+    if (len(url) != 0):
+        imageRequest = requests.get(url)
+        try:
+            imageRequest.raise_for_status
+            image = Image.open(BytesIO(imageRequest.content))
+            imageWidth, imageHeight = image.size
+            if (imageWidth > hMin and imageHeight > vMin):
+                return True
+        except requests.exceptions.MissingSchema as exc:
+            pass
+        except Exception as exc:
+            print(exc)
     
     return False
