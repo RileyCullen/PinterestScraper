@@ -18,7 +18,10 @@
 #       1). RunScraper updated so user only has to enter keyword instead of having
 #           to enter keyword and directory (this is usually the same)
 
-import sys, PinterestScraper, requests, bs4, csv, os, getpass
+# TODO 
+#   1. Updated scraper so the user can enter root directory from shell
+
+import sys, PinterestScraper, requests, bs4, csv, os, getpass, CSVHelper
 
 def Main():
     if len(sys.argv) == 2:
@@ -46,16 +49,22 @@ def RunScraper(password):
 
     while (isRunning):
         usrInput = input("[Pinterest_Scraper] $ ")
+        tokens = usrInput.split(' ')
 
-        if (usrInput == 'quit'):
+        if (tokens[0] == 'quit'):
             isRunning = False
-        elif (usrInput == 'scrape'):
+        elif (tokens[0] == 'scrape'):
             keyword = input("Keyword: ")
             linkSetURL = input("What pinterest page do you wanna scrape? ")
             pinObj.GetLinkSet(linkSetURL, keyword)
             pinObj.ScrapeLinkset()
-        elif (usrInput == 'help'):
+        elif (tokens[0] == 'help'):
             PrintCommandList()
+        elif (tokens[0] == 'create'):
+            if (len(tokens) == 3):
+                if (tokens[1] == 'master' and tokens[2] == 'csv'):
+                    CSVHelper.CreateMasterCSV(pinObj.GetRoot())
+
 
 # desc: Prints out the currently supported commands 
 def PrintCommandList():
