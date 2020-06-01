@@ -63,7 +63,7 @@ def RunScraper(password):
         elif (tokens[0] == 'create'):
             if (len(tokens) == 3):
                 if (tokens[1] == 'master' and tokens[2] == 'csv'):
-                    CSVHelper.CreateMasterCSV(pinObj.GetRoot())
+                    CSVHelper.CreateMasterCSV(pinObj.GetRoot(), "master.csv")
 
 
 # desc: Prints out the currently supported commands 
