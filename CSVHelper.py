@@ -2,6 +2,8 @@
 # CSVHelper.py
 # Created on 5/30/20
 
+# TODO update documentation, add CSV helper methods from PinterestScraper
+
 import os, glob
 import pandas as pd
 
@@ -13,6 +15,7 @@ def CreateMasterCSV(root, filename):
         dataList.append(data)
     
     if (DoesCSVExist(root, filename)):
+        print("removed!")
         RemoveCSV(root, filename)
 
     masterCSV = pd.concat(dataList, axis=0, ignore_index=True)
@@ -35,3 +38,5 @@ def DoesCSVExist(root, filename):
 
 def RemoveCSV(root, filename):
     os.remove(root + "/" + filename)
+
+# CreateMasterCSV("/Users/rileycullen/Seattle University/ShareNW Research Project - Documents/PinterestRepository", "master.csv")
