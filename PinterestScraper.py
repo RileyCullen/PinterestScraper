@@ -67,7 +67,9 @@
 #   May 19, 2020:
 #       1). ScrapeLinkset() updated so that images smaller than a certain size are
 #           filtered out
-
+#   June 10, 2020:
+#       1). Updated ScrapeLinkset() so that the TypeError NoneType is "hopefully"
+#           fixed. 
 # TODO
 #   1. If title is blank, scraper should write N/A
 
@@ -103,7 +105,7 @@ class PinterestScraper:
         self.__hasLoggedIn = False
         self.Login(email, password)
         self._links = set()
-        self._root = "/Users/rileycullen/Seattle University/ShareNW Research Project - Documents/PinterestRepository"
+        self._root = "/Users/rileycullen/Seattle University/ShareNW Research Project - Documents"
         self._downloadPath = ""
         self._captionsFilename = "metadata.json"
         self._csvFilename = "infographics.csv"
@@ -281,61 +283,62 @@ class PinterestScraper:
 
             # Getting image download links
             image = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"div[class='XiG zI7 iyn Hsu'] > img")))
-            print("Initial request: " + image.get_attribute('src'))
-            imageLink = self.__GetHighResImage(image.get_attribute('src'))
-            print("Final Request: " + imageLink)
 
-            # if (len(imageLink) == 0):
-                # imageLink = image.get_attribute('src')
+            try:
+                print("Initial request: " + image.get_attribute('src'))
+                imageLink = self.__GetHighResImage(image.get_attribute('src'))
+                print("Final Request: " + imageLink)
 
-            if (ImageFilter.IsImageGreaterThanBounds(imageLink, self.__horizontalMin, self.__verticalMin)):
-                # Get title
-                try:
-                    title = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "h1[class='lH1 dyH iFc ky3 pBj DrD IZT']")))
-                    titleContent = title.text
-                    doesTitleExist = True
-                except (TimeoutException):
-                    doesTitleExist = False
-                    titleContent = "N/A"
-                print("\nTitle content:\n\n" + titleContent)
+                if (ImageFilter.IsImageGreaterThanBounds(imageLink, self.__horizontalMin, self.__verticalMin)):
+                    # Get title
+                    try:
+                        title = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "h1[class='lH1 dyH iFc ky3 pBj DrD IZT']")))
+                        titleContent = title.text
+                        doesTitleExist = True
+                    except (TimeoutException):
+                        doesTitleExist = False
+                        titleContent = "N/A"
+                    print("\nTitle content:\n\n" + titleContent)
 
-                # Get source
-                try:
-                    source = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[class='Jea jzS zI7 iyn Hsu'] a[class='linkModuleActionButton']")))
-                    srcContent = source.get_attribute('href')
-                except:
-                    srcContent = "N/A"
-                print("\nSource content:\n\n" + srcContent)
+                    # Get source
+                    try:
+                        source = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[class='Jea jzS zI7 iyn Hsu'] a[class='linkModuleActionButton']")))
+                        srcContent = source.get_attribute('href')
+                    except:
+                        srcContent = "N/A"
+                    print("\nSource content:\n\n" + srcContent)
 
                 # Get caption
-                print("\nCaption content:\n")
-                try:
-                    caption = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "span[class='tBJ dyH iFc MF7 pBj DrD IZT swG']")))
-                    captionContent = caption.text
-                except (TimeoutException):
-                    captionContent = "N/A"
-
-                print(captionContent)
-
-                if (titleContent == "N/A" and srcContent != "N/A"):
+                    print("\nCaption content:\n")
                     try:
-                        titleContent = TitleParser.GetTitle(srcContent) 
-                    except:
-                        titleContent = "N/A"
+                        caption = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "span[class='tBJ dyH iFc MF7 pBj DrD IZT swG']")))
+                        captionContent = caption.text
+                    except (TimeoutException):
+                        captionContent = "N/A"
 
-                # Write image to directory
-                imageSuccess = self.__DownloadImage(imageLink, imageName)
-                # Write caption to captions.txt in directory
-                if (imageSuccess):
-                    successCount += 1
-                    captionSuccess = self.__WriteToMetadataFile(imageName, titleContent, srcContent, captionContent)
-                    if (captionSuccess):
-                        if (not doesTitleExist):
-                            self.__WriteToCSVFile(imageName, captionContent[0 : 20], link)
-                        else:
-                            self.__WriteToCSVFile(imageName, titleContent[0 : 20], link)
-            else:
-                print("Image not greater than bounds: " + imageLink)
+                    print(captionContent)
+
+                    if (titleContent == "N/A" and srcContent != "N/A"):
+                        try:
+                            titleContent = TitleParser.GetTitle(srcContent) 
+                        except:
+                            titleContent = "N/A"
+
+                    # Write image to directory
+                    imageSuccess = self.__DownloadImage(imageLink, imageName)
+                    # Write caption to captions.txt in directory
+                    if (imageSuccess):
+                        successCount += 1
+                        captionSuccess = self.__WriteToMetadataFile(imageName, titleContent, srcContent, captionContent)
+                        if (captionSuccess):
+                            if (not doesTitleExist):
+                                self.__WriteToCSVFile(imageName, captionContent[0 : 20], link)
+                            else:
+                                self.__WriteToCSVFile(imageName, titleContent[0 : 20], link)
+                else:
+                    print("Image not greater than bounds: " + imageLink)
+            except:
+                print("No image found (src = NULL)")
             
             print()
             print()
