@@ -71,7 +71,12 @@ def RunScraper(password):
                 if (tokens[1] == 'root' and tokens[2] == 'directory'):
                     root = input('root: ')
                     if (not pinObj.SetRoot(root)):
-                        print("Invalid root. Root could not be set!\n")
+                        print('Invalid root. Root could not be set!\n')
+                elif (tokens[1] == 'image' and tokens[2] == 'bounds'):
+                    hMin = input('horizontal min: ')
+                    vMin = input('vertical min: ')
+                    if (not pinObj.SetBounds(hMin, vMin)):
+                        print('Invalid bounds. Bounds could not be set!\n')
 
 
 # desc: Prints out the currently supported commands 

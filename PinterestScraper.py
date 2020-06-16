@@ -73,6 +73,7 @@
 #   June 15, 2020:
 #       1). SetRoot() added to interface.
 #       2). Search query in ScrapeLinkset updated to be more precise.
+#       3). SetBounds() added to interface.
 #  
 # TODO
 #   1. If title is blank, scraper should write N/A
@@ -116,7 +117,7 @@ class PinterestScraper:
         self.__downloadPath = ''
         self.__captionsFilename = 'metadata.json'
         self.__csvFilename = 'infographics.csv'
-        self._keyword = ''
+        self.__keyword = ''
         self.__verticalMin = 0    # 500
         self.__horizontalMin = 0  # 450
 
@@ -238,11 +239,11 @@ class PinterestScraper:
         linkSet = []
         results = set()
         
-        self._keyword = keyword
+        self.__keyword = keyword
         if (self.__isRootSet):
-            self.__downloadPath = self.__root + '/' + self._keyword.replace(" ", "")
+            self.__downloadPath = self.__root + '/' + self.__keyword.replace(" ", "")
         else:
-            self.__downloadPath = self._keyword.replace(" ", "")
+            self.__downloadPath = self.__keyword.replace(" ", "")
 
         self.__CheckForDownloadPath()
         self.__CheckForCSV()
@@ -290,7 +291,7 @@ class PinterestScraper:
         
         for link in self.__links:
             self._browser.get(link)
-            imageName = self._keyword.replace(" ", "_") + '_%d.jpg'%(successCount)
+            imageName = self.__keyword.replace(" ", "_") + '_%d.jpg'%(successCount)
             print('(%d/%d): '%(loopCount, len(self.__links)) + link)
             loopCount += 1
 
@@ -447,7 +448,7 @@ class PinterestScraper:
         csvPath = self.__downloadPath + '/' + self.__csvFilename
         with open(csvPath, 'a+', newline='') as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow([imageName, self._keyword, partialCaption, url])
+            writer.writerow([imageName, self.__keyword, partialCaption, url])
 
     # desc: Removes duplicate links from linkset 
     # 
@@ -474,6 +475,13 @@ class PinterestScraper:
             return True
         self.__isRootSet = False
         return False
+
+    def SetBounds(self, hMin, vMin):
+        if (hMin <= 0 or vMin <= 0):
+            return False
+        self.__verticalMin = vMin
+        self.__horizontalMin = hMin
+        return True
 
     # desc: Returns the root directory the program will write to
     def GetRoot(self):
