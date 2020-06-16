@@ -76,8 +76,7 @@
 #       3). SetBounds() added to interface.
 #  
 # TODO
-#   1. If title is blank, scraper should write N/A
-
+#   1. Update object documentation (i.e. interface, class, and implementation)
 # If root not set, directories written to wherever script is located
 
 from selenium import webdriver
