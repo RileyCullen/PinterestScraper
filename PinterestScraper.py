@@ -69,9 +69,15 @@
 #           filtered out
 #   June 10, 2020:
 #       1). Updated ScrapeLinkset() so that the TypeError NoneType is "hopefully"
-#           fixed. 
+#           fixed.
+#   June 15, 2020:
+#       1). SetRoot() added to interface.
+#       2). Search query in ScrapeLinkset updated to be more precise.
+#  
 # TODO
 #   1. If title is blank, scraper should write N/A
+
+# If root not set, directories written to wherever script is located
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -103,15 +109,16 @@ class PinterestScraper:
         self._browser = webdriver.Chrome('/Users/rileycullen/chromedriver', options=options)
         self._wait = WebDriverWait(self._browser, 2, ignored_exceptions=ignored_exceptions)
         self.__hasLoggedIn = False
+        self.__isRootSet = False
         self.Login(email, password)
         self._links = set()
-        self._root = "/Users/rileycullen/Seattle University/ShareNW Research Project - Documents"
+        self._root = ""
         self._downloadPath = ""
         self._captionsFilename = "metadata.json"
         self._csvFilename = "infographics.csv"
         self._keyword = ""
-        self.__verticalMin = 500    # 500
-        self.__horizontalMin = 450  # 450
+        self.__verticalMin = 0    # 500
+        self.__horizontalMin = 0  # 450
 
     # desc: Logs into pinterest account with parameterized email/password
     # post: __hasLoggedIn initialized to True if login was successful and false if
@@ -194,20 +201,25 @@ class PinterestScraper:
         csvfile.close()
 
     # desc: Checks if the user's directory exists
-    def __CheckForDir(self):
+    def __CheckForDownloadPath(self):
         if (not os.path.isdir(self._downloadPath)):
             print(self._downloadPath + " not found... Creating a new directory")
-            self.__CreateNewDir()
+            self.__CreateNewDownloadPath()
         else:
             print(self._downloadPath + " found!")
 
     # desc: Creates a new directory to save data to
-    def __CreateNewDir(self):
+    def __CreateNewDownloadPath(self):
         try:
             os.mkdir(self._downloadPath)
             print("Done")
         except OSError as err:
             print(err)
+
+    def __DoesDirExist(self, dir):
+        if (not os.path.isdir(dir)):
+            return False
+        return True
 
     # desc: Goes to linkSetURL and gets the set of links we will parse
     # pre:  linkSetURL must be a valid URL to a pinterest pin page, hasLoggedIn
@@ -227,9 +239,12 @@ class PinterestScraper:
         results = set()
         
         self._keyword = keyword
-        self._downloadPath = self._root + '/' + self._keyword.replace(" ", "")
+        if (self.__isRootSet):
+            self._downloadPath = self._root + '/' + self._keyword.replace(" ", "")
+        else:
+            self._downloadPath = self._keyword.replace(" ", "")
 
-        self.__CheckForDir()
+        self.__CheckForDownloadPath()
         self.__CheckForCSV()
         self.__CheckForCaptionsTxt()
 
@@ -251,8 +266,6 @@ class PinterestScraper:
                     body.send_keys(Keys.PAGE_DOWN)
 
                     if (previousSet != linkSet):
-                        # body.send_keys(Keys.PAGE_DOWN)
-                        # body.send_keys(Keys.PAGE_DOWN)
                         tries = 0
                     else:
                         tries += 1
@@ -282,7 +295,7 @@ class PinterestScraper:
             loopCount += 1
 
             # Getting image download links
-            image = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"div[class='XiG zI7 iyn Hsu'] > img")))
+            image = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"div[class='Pj7 sLG XiG eEj m1e'] > div[class='XiG zI7 iyn Hsu'] > img")))
 
             try:
                 print("Initial request: " + image.get_attribute('src'))
@@ -453,6 +466,14 @@ class PinterestScraper:
                 results.add(link.get_attribute('href'))
                 helper.add(link.get_attribute('href'))
         return helper
+
+    def SetRoot(self, root):
+        if (self.__DoesDirExist(root)):
+            self._root = root
+            self.__isRootSet = True
+            return True
+        self.__isRootSet = False
+        return False
 
     # desc: Returns the root directory the program will write to
     def GetRoot(self):

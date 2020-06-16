@@ -38,5 +38,3 @@ def DoesCSVExist(root, filename):
 
 def RemoveCSV(root, filename):
     os.remove(root + "/" + filename)
-
-# CreateMasterCSV("/Users/rileycullen/Seattle University/ShareNW Research Project - Documents/PinterestRepository", "master.csv")
