@@ -107,16 +107,16 @@ class PinterestScraper:
         options.headless = True
         ignored_exceptions = (NoSuchElementException, StaleElementReferenceException)
         self._browser = webdriver.Chrome('/Users/rileycullen/chromedriver', options=options)
-        self._wait = WebDriverWait(self._browser, 2, ignored_exceptions=ignored_exceptions)
+        self.__wait = WebDriverWait(self._browser, 2, ignored_exceptions=ignored_exceptions)
         self.__hasLoggedIn = False
         self.__isRootSet = False
         self.Login(email, password)
-        self._links = set()
-        self._root = ""
-        self._downloadPath = ""
-        self._captionsFilename = "metadata.json"
-        self._csvFilename = "infographics.csv"
-        self._keyword = ""
+        self.__links = set()
+        self.__root = ''
+        self.__downloadPath = ''
+        self.__captionsFilename = 'metadata.json'
+        self.__csvFilename = 'infographics.csv'
+        self._keyword = ''
         self.__verticalMin = 0    # 500
         self.__horizontalMin = 0  # 450
 
@@ -135,8 +135,8 @@ class PinterestScraper:
         loginURL = 'https://www.pinterest.com/login/'
         self._browser.get(loginURL)
 
-        emailInput = self._browser.find_element_by_id("email")
-        passwordInput = self._browser.find_element_by_id("password")
+        emailInput = self._browser.find_element_by_id('email')
+        passwordInput = self._browser.find_element_by_id('password')
 
         emailInput.send_keys(email)
         passwordInput.send_keys(password)
@@ -144,7 +144,7 @@ class PinterestScraper:
         passwordInput.send_keys(Keys.RETURN)
     
         try:
-            feedItem = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-test-id='homefeed-feed']")))
+            feedItem = self.__wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[data-test-id='homefeed-feed']")))
         except (TimeoutException):
             feedItem = 0
 
@@ -156,13 +156,13 @@ class PinterestScraper:
     # desc: Checks to see if there is a JSON file already in the directory that
     #       the user wants to write to
     def __CheckForCaptionsTxt(self):
-        path = self._downloadPath + "/" + self._captionsFilename
+        path = self.__downloadPath + '/' + self.__captionsFilename
         if(not os.path.isfile(path)):
-            print(path + " not found... Creating a new copy")
+            print(path + ' not found... Creating a new copy')
             self.__CreateNewCaptionsTxt(path)
-            print("Done")
+            print('Done')
         else:
-            print(path + " found!")
+            print(path + ' found!')
 
     # desc: Creates a new JSON file to hold the image captions
     # 
@@ -179,13 +179,13 @@ class PinterestScraper:
     # desc: Checks to see if there is a CSV file in the directory that the user
     #       wants to write to
     def __CheckForCSV(self):
-        path = self._downloadPath + "/" + self._csvFilename
+        path = self.__downloadPath + '/' + self.__csvFilename
         if (not os.path.isfile(path)):
-            print(path + " not found... Creating a new copy")
+            print(path + ' not found... Creating a new copy')
             self.__CreateNewCSVFile(path)
-            print("Done")
+            print('Done')
         else:
-            print(path + " found!")
+            print(path + ' found!')
 
     # desc: Creates a new CSV file
     # 
@@ -202,17 +202,17 @@ class PinterestScraper:
 
     # desc: Checks if the user's directory exists
     def __CheckForDownloadPath(self):
-        if (not os.path.isdir(self._downloadPath)):
-            print(self._downloadPath + " not found... Creating a new directory")
+        if (not os.path.isdir(self.__downloadPath)):
+            print(self.__downloadPath + ' not found... Creating a new directory')
             self.__CreateNewDownloadPath()
         else:
-            print(self._downloadPath + " found!")
+            print(self.__downloadPath + ' found!')
 
     # desc: Creates a new directory to save data to
     def __CreateNewDownloadPath(self):
         try:
-            os.mkdir(self._downloadPath)
-            print("Done")
+            os.mkdir(self.__downloadPath)
+            print('Done')
         except OSError as err:
             print(err)
 
@@ -240,9 +240,9 @@ class PinterestScraper:
         
         self._keyword = keyword
         if (self.__isRootSet):
-            self._downloadPath = self._root + '/' + self._keyword.replace(" ", "")
+            self.__downloadPath = self.__root + '/' + self._keyword.replace(" ", "")
         else:
-            self._downloadPath = self._keyword.replace(" ", "")
+            self.__downloadPath = self._keyword.replace(" ", "")
 
         self.__CheckForDownloadPath()
         self.__CheckForCSV()
@@ -250,15 +250,15 @@ class PinterestScraper:
 
         self._browser.get(linkSetURL)
 
-        body = self._browser.find_element_by_tag_name("body")
+        body = self._browser.find_element_by_tag_name('body')
 
         try:
             while tries < MAX_TRIES:
-                print("tries: %d"%tries)
+                print('tries: %d'%tries)
                 try:
                     time.sleep(2)
                     previousSet = linkSet
-                    linkSet = self._wait.until(EC.presence_of_all_elements_located(
+                    linkSet = self.__wait.until(EC.presence_of_all_elements_located(
 					        (By.CSS_SELECTOR, "a[href*='/pin/']")))
 
                     results = self.__RemoveDuplicates(results, linkSet)
@@ -274,7 +274,7 @@ class PinterestScraper:
         except KeyboardInterrupt:
             pass
 
-        self._links = results
+        self.__links = results
     
     # desc: Goes to each link within the linkset and downloads an image, caption,
     #       title, and source. Also filters out images that are not bigger than
@@ -283,59 +283,59 @@ class PinterestScraper:
     def ScrapeLinkset(self):
         loopCount = 1
         successCount = 1
-        captionContent = ""
-        titleContent = ""
-        srcContent = ""
+        captionContent = ''
+        titleContent = ''
+        srcContent = ''
         doesTitleExist = False
         
-        for link in self._links:
+        for link in self.__links:
             self._browser.get(link)
-            imageName = self._keyword.replace(" ", "_") + "_%d.jpg"%(successCount)
-            print("(%d/%d): "%(loopCount, len(self._links)) + link)
+            imageName = self._keyword.replace(" ", "_") + '_%d.jpg'%(successCount)
+            print('(%d/%d): '%(loopCount, len(self.__links)) + link)
             loopCount += 1
 
             # Getting image download links
-            image = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"div[class='Pj7 sLG XiG eEj m1e'] > div[class='XiG zI7 iyn Hsu'] > img")))
+            image = self.__wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"div[class='Pj7 sLG XiG eEj m1e'] > div[class='XiG zI7 iyn Hsu'] > img")))
 
             try:
-                print("Initial request: " + image.get_attribute('src'))
+                print('Initial request: ' + image.get_attribute('src'))
                 imageLink = self.__GetHighResImage(image.get_attribute('src'))
-                print("Final Request: " + imageLink)
+                print('Final Request: ' + imageLink)
 
                 if (ImageFilter.IsImageGreaterThanBounds(imageLink, self.__horizontalMin, self.__verticalMin)):
                     # Get title
                     try:
-                        title = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "h1[class='lH1 dyH iFc ky3 pBj DrD IZT']")))
+                        title = self.__wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "h1[class='lH1 dyH iFc ky3 pBj DrD IZT']")))
                         titleContent = title.text
                         doesTitleExist = True
                     except (TimeoutException):
                         doesTitleExist = False
-                        titleContent = "N/A"
-                    print("\nTitle content:\n\n" + titleContent)
+                        titleContent = 'N/A'
+                    print('\nTitle content:\n\n' + titleContent)
 
                     # Get source
                     try:
-                        source = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[class='Jea jzS zI7 iyn Hsu'] a[class='linkModuleActionButton']")))
+                        source = self.__wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "div[class='Jea jzS zI7 iyn Hsu'] a[class='linkModuleActionButton']")))
                         srcContent = source.get_attribute('href')
                     except:
-                        srcContent = "N/A"
-                    print("\nSource content:\n\n" + srcContent)
+                        srcContent = 'N/A'
+                    print('\nSource content:\n\n' + srcContent)
 
                 # Get caption
-                    print("\nCaption content:\n")
+                    print('\nCaption content:\n')
                     try:
-                        caption = self._wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "span[class='tBJ dyH iFc MF7 pBj DrD IZT swG']")))
+                        caption = self.__wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "span[class='tBJ dyH iFc MF7 pBj DrD IZT swG']")))
                         captionContent = caption.text
                     except (TimeoutException):
-                        captionContent = "N/A"
+                        captionContent = 'N/A'
 
                     print(captionContent)
 
-                    if (titleContent == "N/A" and srcContent != "N/A"):
+                    if (titleContent == 'N/A' and srcContent != 'N/A'):
                         try:
                             titleContent = TitleParser.GetTitle(srcContent) 
                         except:
-                            titleContent = "N/A"
+                            titleContent = 'N/A'
 
                     # Write image to directory
                     imageSuccess = self.__DownloadImage(imageLink, imageName)
@@ -349,9 +349,9 @@ class PinterestScraper:
                             else:
                                 self.__WriteToCSVFile(imageName, titleContent[0 : 20], link)
                 else:
-                    print("Image not greater than bounds: " + imageLink)
+                    print('Image not greater than bounds: ' + imageLink)
             except:
-                print("No image found (src = NULL)")
+                print('No image found (src = NULL)')
             
             print()
             print()
@@ -364,9 +364,9 @@ class PinterestScraper:
     # imageLink : string
     #       Holds the link to the image we want to download
     def __GetHighResImage(self, imageLink):
-        finalLink = ""
-        if (imageLink.find("/236x/") != -1):
-            finalLink = imageLink.replace("/236x/", "/736x/")
+        finalLink = ''
+        if (imageLink.find('/236x/') != -1):
+            finalLink = imageLink.replace('/236x/', '/736x/')
         return finalLink
 
     # desc: Downloads picture to local disk
@@ -381,12 +381,12 @@ class PinterestScraper:
     def __DownloadImage(self, imageLink, imageName):
         try:
             pictureRequest = requests.get(imageLink)
-            with open(self._downloadPath + '/' + imageName, 'wb') as f:
+            with open(self.__downloadPath + '/' + imageName, 'wb') as f:
                 f.write(pictureRequest.content)
                 f.close()
             return True
         except:
-            print("Error: Image request failed")
+            print('Error: Image request failed')
             return False
 
     # desc: Writes captions to caption.txt on local disk
@@ -405,7 +405,7 @@ class PinterestScraper:
     # caption : string
     #       Caption associated with the saved image
     def __WriteToMetadataFile(self, imageName, title, source, caption):
-        path = self._downloadPath + '/' + self._captionsFilename
+        path = self.__downloadPath + '/' + self.__captionsFilename
         data = {}
         helper = 0
         with open(path,) as captionsFile:
@@ -444,8 +444,8 @@ class PinterestScraper:
     # url : string
     #       URL to the pin we want to download
     def __WriteToCSVFile(self, imageName, partialCaption, url):
-        csvPath = self._downloadPath + "/" + self._csvFilename
-        with open(csvPath, "a+", newline='') as csvfile:
+        csvPath = self.__downloadPath + '/' + self.__csvFilename
+        with open(csvPath, 'a+', newline='') as csvfile:
             writer = csv.writer(csvfile)
             writer.writerow([imageName, self._keyword, partialCaption, url])
 
@@ -469,7 +469,7 @@ class PinterestScraper:
 
     def SetRoot(self, root):
         if (self.__DoesDirExist(root)):
-            self._root = root
+            self.__root = root
             self.__isRootSet = True
             return True
         self.__isRootSet = False
@@ -477,7 +477,7 @@ class PinterestScraper:
 
     # desc: Returns the root directory the program will write to
     def GetRoot(self):
-        return self._root
+        return self.__root
 
     def GetLoginStatus(self):
         return self.__hasLoggedIn
